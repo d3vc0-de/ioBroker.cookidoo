@@ -457,7 +457,7 @@ class CookidooAdapter extends utils.Adapter {
                     `/organize/${lang}/api/managed-list`,
                     'application/vnd.vorwerk.organize.managed-list.mobile+json',
                 );
-                const managedList = (managed.items ?? managed ?? []).map(c => ({
+                const managedList = (managed.managedlists ?? []).map(c => ({
                     id: c.id,
                     name: c.title,
                     chapters: (c.chapters ?? []).map(ch => ({
@@ -477,7 +477,7 @@ class CookidooAdapter extends utils.Adapter {
                     `/organize/${lang}/api/custom-list`,
                     'application/vnd.vorwerk.organize.custom-list.mobile+json',
                 );
-                const customList = (custom.items ?? custom ?? []).map(c => ({
+                const customList = (custom.customlists ?? []).map(c => ({
                     id: c.id,
                     name: c.title,
                     description: c.description ?? null,
