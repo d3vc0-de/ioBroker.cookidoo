@@ -8,9 +8,8 @@ const querystring = require('node:querystring');
 // Cookidoo API Konstanten (aus dem offiziellen Python-Paket miaucl/cookidoo-api)
 // ---------------------------------------------------------------------------
 const COOKIDOO_AUTH_HEADER = 'Basic a3VwZmVyd2Vyay1jbGllbnQtbndvdDpMczUwT04xd295U3FzMWRDZEpnZQ==';
-const COOKIDOO_USER_AGENT = 'Thermomix/5427 (iPhone; iOS11.2; Scale/3.00)';
-const COOKIDOO_COOKIE = 'vrkPreAccessGranted=true';
-const API_BASE = (cc) => `https://${cc}.tmmobile.vorwerk-digital.com`;
+const COOKIDOO_USER_AGENT  = 'Thermomix/5427 (iPhone; iOS11.2; Scale/3.00)';
+const COOKIDOO_COOKIE      = 'vrkPreAccessGranted=true';
 
 /** Sprachcode → { country_code, language } */
 const LOCALIZATIONS = {
@@ -45,8 +44,9 @@ class CookidooAdapter extends utils.Adapter {
         this.pollTimer = null;
         /** @type {{ access_token: string, refresh_token: string, token_type: string, expires_in: number } | null} */
         this.authData = null;
-        /** @type {{ country_code: string, language: string } | null} */
-        this.loc = null;
+        this.tokenExpiresAt = 0;
+        /** @type {{ country_code: string, language: string }} */
+        this.loc = LOCALIZATIONS['de-DE'];
     }
 
     // -------------------------------------------------------------------------
@@ -95,26 +95,161 @@ class CookidooAdapter extends utils.Adapter {
      */
     async onStateChange(id, state) {
         if (!state || state.ack) return;
-
         const localId = id.replace(`${this.namespace}.`, '');
+        await this._handleAction(localId, state.val);
+    }
 
-        if (localId === 'actions.refresh') {
-            this.log.info('Manuelle Aktualisierung ausgelöst.');
-            await this.safePoll();
-            await this.setState('actions.refresh', { val: false, ack: true });
-        } else if (localId === 'actions.clearShoppingList') {
-            this.log.info('Einkaufsliste wird geleert...');
-            await this.clearShoppingList();
-            await this.setState('actions.clearShoppingList', { val: false, ack: true });
-        } else if (localId === 'actions.markAllOwned') {
-            this.log.info('Alle Zutaten als vorhanden markieren...');
-            await this.markAllIngredientsOwned(true);
-            await this.setState('actions.markAllOwned', { val: false, ack: true });
-        } else if (localId === 'actions.markAllUnowned') {
-            this.log.info('Alle Zutaten als nicht vorhanden markieren...');
-            await this.markAllIngredientsOwned(false);
-            await this.setState('actions.markAllUnowned', { val: false, ack: true });
+    /**
+     * @param {string} localId
+     * @param {any} val
+     */
+    async _handleAction(localId, val) {
+        const ack = async () => {
+            const isButton = ['actions.refresh', 'actions.clearShoppingList',
+                'actions.markAllOwned', 'actions.markAllUnowned'].includes(localId);
+            await this.setState(localId, { val: isButton ? false : '', ack: true });
+        };
+
+        try {
+            switch (localId) {
+                // ---- Buttons ----
+                case 'actions.refresh':
+                    this.log.info('Manuelle Aktualisierung ausgelöst.');
+                    await this.safePoll();
+                    break;
+
+                case 'actions.clearShoppingList':
+                    this.log.info('Einkaufsliste wird geleert...');
+                    await this.clearShoppingList();
+                    break;
+
+                case 'actions.markAllOwned':
+                    this.log.info('Alle Zutaten als vorhanden markieren...');
+                    await this.markAllIngredientsOwned(true);
+                    break;
+
+                case 'actions.markAllUnowned':
+                    this.log.info('Alle Zutaten als nicht vorhanden markieren...');
+                    await this.markAllIngredientsOwned(false);
+                    break;
+
+                // ---- Einkaufsliste: Rezepte ----
+                case 'actions.addRecipeToShopping':
+                    if (val) {
+                        this.log.info(`Rezept ${val} zur Einkaufsliste hinzufügen...`);
+                        await this.addRecipesToShopping([String(val)]);
+                        await this.fetchShoppingList();
+                    }
+                    break;
+
+                case 'actions.removeRecipeFromShopping':
+                    if (val) {
+                        this.log.info(`Rezept ${val} von der Einkaufsliste entfernen...`);
+                        await this.removeRecipesFromShopping([String(val)]);
+                        await this.fetchShoppingList();
+                    }
+                    break;
+
+                // ---- Einkaufsliste: Zusatzartikel ----
+                case 'actions.addAdditionalItem':
+                    if (val) {
+                        this.log.info(`Zusatzartikel "${val}" hinzufügen...`);
+                        await this.addAdditionalItem(String(val));
+                        await this.fetchShoppingList();
+                    }
+                    break;
+
+                case 'actions.removeAdditionalItem':
+                    if (val) {
+                        this.log.info(`Zusatzartikel ${val} entfernen...`);
+                        await this.removeAdditionalItems([String(val)]);
+                        await this.fetchShoppingList();
+                    }
+                    break;
+
+                // ---- Kalender ----
+                case 'actions.addRecipeToCalendar': {
+                    // Erwartet JSON-String: {"date":"2026-04-12","recipeId":"r123456"}
+                    if (val) {
+                        const data = this._parseJson(val, 'addRecipeToCalendar');
+                        if (data && data.date && data.recipeId) {
+                            this.log.info(`Rezept ${data.recipeId} am ${data.date} planen...`);
+                            await this.addRecipeToCalendar(data.date, [data.recipeId]);
+                            await this.fetchCalendar();
+                        }
+                    }
+                    break;
+                }
+
+                case 'actions.removeRecipeFromCalendar': {
+                    // Erwartet JSON-String: {"date":"2026-04-12","recipeId":"r123456"}
+                    if (val) {
+                        const data = this._parseJson(val, 'removeRecipeFromCalendar');
+                        if (data && data.date && data.recipeId) {
+                            this.log.info(`Rezept ${data.recipeId} am ${data.date} entfernen...`);
+                            await this.removeRecipeFromCalendar(data.date, data.recipeId);
+                            await this.fetchCalendar();
+                        }
+                    }
+                    break;
+                }
+
+                // ---- Eigene Rezepte ----
+                case 'actions.copyRecipeUrl': {
+                    // Erwartet eine Cookidoo-URL, z.B. https://cookidoo.de/recipes/recipe/de-DE/r123456
+                    if (val) {
+                        this.log.info(`Rezept kopieren: ${val}`);
+                        await this.copyCustomRecipe(String(val), 4);
+                        await this.fetchCustomRecipes();
+                    }
+                    break;
+                }
+
+                case 'actions.deleteCustomRecipe':
+                    if (val) {
+                        this.log.info(`Eigenes Rezept ${val} löschen...`);
+                        await this.deleteCustomRecipe(String(val));
+                        await this.fetchCustomRecipes();
+                    }
+                    break;
+
+                // ---- Kollektionen ----
+                case 'actions.addManagedCollection':
+                    if (val) {
+                        this.log.info(`Vorwerk-Kollektion ${val} hinzufügen...`);
+                        await this.addManagedCollection(String(val));
+                        await this.fetchCollections();
+                    }
+                    break;
+
+                case 'actions.removeManagedCollection':
+                    if (val) {
+                        this.log.info(`Vorwerk-Kollektion ${val} entfernen...`);
+                        await this.removeManagedCollection(String(val));
+                        await this.fetchCollections();
+                    }
+                    break;
+
+                case 'actions.addCustomCollection':
+                    if (val) {
+                        this.log.info(`Eigene Kollektion "${val}" anlegen...`);
+                        await this.addCustomCollection(String(val));
+                        await this.fetchCollections();
+                    }
+                    break;
+
+                case 'actions.removeCustomCollection':
+                    if (val) {
+                        this.log.info(`Eigene Kollektion ${val} löschen...`);
+                        await this.removeCustomCollection(String(val));
+                        await this.fetchCollections();
+                    }
+                    break;
+            }
+        } catch (e) {
+            this.log.error(`Aktion ${localId} fehlgeschlagen: ${e.message}`);
         }
+        await ack();
     }
 
     // -------------------------------------------------------------------------
@@ -163,42 +298,42 @@ class CookidooAdapter extends utils.Adapter {
         });
         await this.setObjectNotExistsAsync('shopping.recipes', {
             type: 'state',
-            common: { name: 'Rezepte auf der Einkaufsliste (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Rezepte auf der Einkaufsliste (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.recipesCount', {
             type: 'state',
-            common: { name: 'Anzahl Rezepte', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Anzahl Rezepte', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.ingredientItems', {
             type: 'state',
-            common: { name: 'Zutaten (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Zutaten (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.ingredientItemsCount', {
             type: 'state',
-            common: { name: 'Anzahl Zutaten', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Anzahl Zutaten', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.unownedIngredientsCount', {
             type: 'state',
-            common: { name: 'Fehlende Zutaten', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Fehlende Zutaten', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.additionalItems', {
             type: 'state',
-            common: { name: 'Zusätzliche Artikel (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Zusätzliche Artikel (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.additionalItemsCount', {
             type: 'state',
-            common: { name: 'Anzahl zusätzliche Artikel', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Anzahl zusätzliche Artikel', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
         await this.setObjectNotExistsAsync('shopping.unownedAdditionalCount', {
             type: 'state',
-            common: { name: 'Fehlende zusätzliche Artikel', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Fehlende zusätzliche Artikel', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
 
@@ -208,12 +343,27 @@ class CookidooAdapter extends utils.Adapter {
         });
         await this.setObjectNotExistsAsync('calendar.week', {
             type: 'state',
-            common: { name: 'Aktuelle Woche (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Aktuelle Woche (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('calendar.todayRecipes', {
             type: 'state',
-            common: { name: 'Rezepte heute (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Rezepte heute (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
+            native: {},
+        });
+
+        // --- customRecipes ---
+        await this.setObjectNotExistsAsync('customRecipes', {
+            type: 'channel', common: { name: 'Meine Rezepte' }, native: {},
+        });
+        await this.setObjectNotExistsAsync('customRecipes.list', {
+            type: 'state',
+            common: { name: 'Eigene / kopierte Rezepte (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
+            native: {},
+        });
+        await this.setObjectNotExistsAsync('customRecipes.count', {
+            type: 'state',
+            common: { name: 'Anzahl eigene Rezepte', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
 
@@ -223,22 +373,22 @@ class CookidooAdapter extends utils.Adapter {
         });
         await this.setObjectNotExistsAsync('collections.managed', {
             type: 'state',
-            common: { name: 'Vorwerk-Kollektionen (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Vorwerk-Kollektionen (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('collections.managedCount', {
             type: 'state',
-            common: { name: 'Anzahl Vorwerk-Kollektionen', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Anzahl Vorwerk-Kollektionen', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
         await this.setObjectNotExistsAsync('collections.custom', {
             type: 'state',
-            common: { name: 'Eigene Kollektionen (JSON)', type: 'string', role: 'json', read: true, write: false },
+            common: { name: 'Eigene Kollektionen (JSON)', type: 'string', role: 'json', read: true, write: false, def: '[]' },
             native: {},
         });
         await this.setObjectNotExistsAsync('collections.customCount', {
             type: 'state',
-            common: { name: 'Anzahl eigene Kollektionen', type: 'number', role: 'value', read: true, write: false },
+            common: { name: 'Anzahl eigene Kollektionen', type: 'number', role: 'value', read: true, write: false, def: 0 },
             native: {},
         });
 
@@ -246,26 +396,72 @@ class CookidooAdapter extends utils.Adapter {
         await this.setObjectNotExistsAsync('actions', {
             type: 'channel', common: { name: 'Aktionen' }, native: {},
         });
-        await this.setObjectNotExistsAsync('actions.refresh', {
-            type: 'state',
-            common: { name: 'Daten aktualisieren', type: 'boolean', role: 'button', read: false, write: true, def: false },
-            native: {},
-        });
-        await this.setObjectNotExistsAsync('actions.clearShoppingList', {
-            type: 'state',
-            common: { name: 'Einkaufsliste leeren', type: 'boolean', role: 'button', read: false, write: true, def: false },
-            native: {},
-        });
-        await this.setObjectNotExistsAsync('actions.markAllOwned', {
-            type: 'state',
-            common: { name: 'Alle Zutaten als vorhanden markieren', type: 'boolean', role: 'button', read: false, write: true, def: false },
-            native: {},
-        });
-        await this.setObjectNotExistsAsync('actions.markAllUnowned', {
-            type: 'state',
-            common: { name: 'Alle Zutaten als fehlend markieren', type: 'boolean', role: 'button', read: false, write: true, def: false },
-            native: {},
-        });
+
+        // Buttons
+        for (const [id, name] of [
+            ['actions.refresh',          'Daten aktualisieren'],
+            ['actions.clearShoppingList','Einkaufsliste leeren'],
+            ['actions.markAllOwned',     'Alle Zutaten als vorhanden markieren'],
+            ['actions.markAllUnowned',   'Alle Zutaten als fehlend markieren'],
+        ]) {
+            await this.setObjectNotExistsAsync(id, {
+                type: 'state',
+                common: { name, type: 'boolean', role: 'button', read: false, write: true, def: false },
+                native: {},
+            });
+        }
+
+        // String-Aktionen (Einkaufsliste)
+        for (const [id, name, desc] of [
+            ['actions.addRecipeToShopping',    'Rezept zur Einkaufsliste hinzufügen',   'Rezept-ID, z.B. r123456'],
+            ['actions.removeRecipeFromShopping','Rezept von der Einkaufsliste entfernen','Rezept-ULID aus shopping.recipes'],
+            ['actions.addAdditionalItem',       'Zusatzartikel hinzufügen',              'Artikelname als Text'],
+            ['actions.removeAdditionalItem',    'Zusatzartikel entfernen',               'Artikel-ID aus shopping.additionalItems'],
+        ]) {
+            await this.setObjectNotExistsAsync(id, {
+                type: 'state',
+                common: { name, type: 'string', role: 'text', read: true, write: true, def: '', desc },
+                native: {},
+            });
+        }
+
+        // String-Aktionen (Kalender)
+        for (const [id, name, desc] of [
+            ['actions.addRecipeToCalendar',    'Rezept zum Kalender hinzufügen',  'JSON: {"date":"2026-04-12","recipeId":"r123456"}'],
+            ['actions.removeRecipeFromCalendar','Rezept aus Kalender entfernen',   'JSON: {"date":"2026-04-12","recipeId":"r123456"}'],
+        ]) {
+            await this.setObjectNotExistsAsync(id, {
+                type: 'state',
+                common: { name, type: 'string', role: 'json', read: true, write: true, def: '', desc },
+                native: {},
+            });
+        }
+
+        // String-Aktionen (Eigene Rezepte)
+        for (const [id, name, desc] of [
+            ['actions.copyRecipeUrl',    'Rezept in "Meine Rezepte" kopieren', 'Vollständige Cookidoo-URL, z.B. https://cookidoo.de/recipes/recipe/de-DE/r123456'],
+            ['actions.deleteCustomRecipe','Eigenes Rezept löschen',             'Rezept-ID aus customRecipes.list'],
+        ]) {
+            await this.setObjectNotExistsAsync(id, {
+                type: 'state',
+                common: { name, type: 'string', role: 'text', read: true, write: true, def: '', desc },
+                native: {},
+            });
+        }
+
+        // String-Aktionen (Kollektionen)
+        for (const [id, name, desc] of [
+            ['actions.addManagedCollection',   'Vorwerk-Kollektion hinzufügen',  'Kollektions-ID'],
+            ['actions.removeManagedCollection','Vorwerk-Kollektion entfernen',   'Kollektions-ID aus collections.managed'],
+            ['actions.addCustomCollection',    'Eigene Kollektion anlegen',      'Titel der neuen Kollektion'],
+            ['actions.removeCustomCollection', 'Eigene Kollektion löschen',      'Kollektions-ID aus collections.custom'],
+        ]) {
+            await this.setObjectNotExistsAsync(id, {
+                type: 'state',
+                common: { name, type: 'string', role: 'text', read: true, write: true, def: '', desc },
+                native: {},
+            });
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -274,8 +470,7 @@ class CookidooAdapter extends utils.Adapter {
 
     async safePoll() {
         try {
-            // Token ggf. erneuern
-            if (this.authData && this.tokenExpiresAt && Date.now() > this.tokenExpiresAt - 60000) {
+            if (this.authData && this.tokenExpiresAt && Date.now() > this.tokenExpiresAt - 60_000) {
                 await this.refreshToken();
             }
             await this.poll();
@@ -286,11 +481,12 @@ class CookidooAdapter extends utils.Adapter {
     }
 
     async poll() {
-        await Promise.all([
+        await Promise.allSettled([
             this.fetchUserInfo(),
             this.fetchSubscription(),
             this.fetchShoppingList(),
             this.fetchCalendar(),
+            this.fetchCustomRecipes(),
             this.fetchCollections(),
         ]);
         await this.setState('info.connection', { val: true, ack: true });
@@ -301,7 +497,7 @@ class CookidooAdapter extends utils.Adapter {
     // -------------------------------------------------------------------------
 
     async login() {
-        // Laut Raw-API-Mitschnitt: kein client_id im Login-Body, nur username/password/grant_type
+        // Laut Raw-API-Mitschnitt: kein client_id im Login-Body
         const body = querystring.stringify({
             grant_type: 'password',
             username: this.config.email,
@@ -323,28 +519,26 @@ class CookidooAdapter extends utils.Adapter {
     }
 
     async _requestToken(body) {
-        const cc = this.loc.country_code;
         const json = await this.httpsRequest({
-            hostname: `${cc}.tmmobile.vorwerk-digital.com`,
+            hostname: `${this.loc.country_code}.tmmobile.vorwerk-digital.com`,
             path: '/ciam/auth/token',
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': COOKIDOO_AUTH_HEADER,
-                'User-Agent': COOKIDOO_USER_AGENT,
-                'Cookie': COOKIDOO_COOKIE,
+                'Accept':          'application/json',
+                'Content-Type':    'application/x-www-form-urlencoded',
+                'Authorization':   COOKIDOO_AUTH_HEADER,
+                'User-Agent':      COOKIDOO_USER_AGENT,
+                'Cookie':          COOKIDOO_COOKIE,
                 'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
-                'Content-Length': Buffer.byteLength(body),
+                'Content-Length':  Buffer.byteLength(body),
             },
         }, body);
-
         this.authData = json;
         this.tokenExpiresAt = Date.now() + (json.expires_in * 1000);
     }
 
     // -------------------------------------------------------------------------
-    // API-Aufrufe
+    // Lesende API-Aufrufe
     // -------------------------------------------------------------------------
 
     async fetchUserInfo() {
@@ -359,14 +553,13 @@ class CookidooAdapter extends utils.Adapter {
     async fetchSubscription() {
         try {
             const json = await this.apiGet('/ownership/subscriptions');
-            // API gibt ein Array zurück, aktives Abo suchen
             const subs = Array.isArray(json) ? json : (json.subscriptions ?? []);
             const active = subs.find(s => s.active) ?? subs[0] ?? null;
             if (active) {
-                await this.setState('info.subscriptionActive', { val: !!active.active, ack: true });
+                await this.setState('info.subscriptionActive',  { val: !!active.active, ack: true });
                 await this.setState('info.subscriptionExpires', { val: String(active.expires ?? ''), ack: true });
-                await this.setState('info.subscriptionStatus', { val: String(active.status ?? ''), ack: true });
-                await this.setState('info.subscriptionLevel', { val: String(active.subscriptionLevel ?? ''), ack: true });
+                await this.setState('info.subscriptionStatus',  { val: String(active.status ?? ''), ack: true });
+                await this.setState('info.subscriptionLevel',   { val: String(active.subscriptionLevel ?? ''), ack: true });
             }
         } catch (e) {
             this.log.warn(`fetchSubscription: ${e.message}`);
@@ -378,39 +571,35 @@ class CookidooAdapter extends utils.Adapter {
             const lang = this.loc.language;
             const json = await this.apiGet(`/shopping/${lang}`);
 
-            // Rezepte auf der Einkaufsliste
+            // Rezepte (enthalten die ULID im Feld id, die für Remove benötigt wird)
             const recipes = (json.recipes ?? []).map(r => ({
-                id: r.id,
+                id: r.id,           // ULID — zum Entfernen verwenden
                 name: r.title,
                 ingredientsCount: (r.recipeIngredientGroups ?? []).length,
             }));
-            await this.setState('shopping.recipes', { val: JSON.stringify(recipes), ack: true });
+            await this.setState('shopping.recipes',      { val: JSON.stringify(recipes), ack: true });
             await this.setState('shopping.recipesCount', { val: recipes.length, ack: true });
 
             // Zutaten
             const ingredients = (json.items ?? []).map(item => ({
-                id: item.id,
-                name: item.ingredientNotation ?? item.name ?? '',
+                id:          item.id,
+                name:        item.ingredientNotation ?? item.name ?? '',
                 description: this._formatDescription(item),
-                is_owned: !!item.isOwned,
+                is_owned:    !!item.isOwned,
             }));
-            await this.setState('shopping.ingredientItems', { val: JSON.stringify(ingredients), ack: true });
-            await this.setState('shopping.ingredientItemsCount', { val: ingredients.length, ack: true });
-            await this.setState('shopping.unownedIngredientsCount', {
-                val: ingredients.filter(i => !i.is_owned).length, ack: true,
-            });
+            await this.setState('shopping.ingredientItems',       { val: JSON.stringify(ingredients), ack: true });
+            await this.setState('shopping.ingredientItemsCount',  { val: ingredients.length, ack: true });
+            await this.setState('shopping.unownedIngredientsCount', { val: ingredients.filter(i => !i.is_owned).length, ack: true });
 
             // Zusätzliche Artikel
             const additionalItems = (json.additionalItems ?? []).map(item => ({
-                id: item.id,
-                name: item.name ?? '',
+                id:       item.id,
+                name:     item.name ?? '',
                 is_owned: !!item.isOwned,
             }));
-            await this.setState('shopping.additionalItems', { val: JSON.stringify(additionalItems), ack: true });
+            await this.setState('shopping.additionalItems',      { val: JSON.stringify(additionalItems), ack: true });
             await this.setState('shopping.additionalItemsCount', { val: additionalItems.length, ack: true });
-            await this.setState('shopping.unownedAdditionalCount', {
-                val: additionalItems.filter(i => !i.is_owned).length, ack: true,
-            });
+            await this.setState('shopping.unownedAdditionalCount', { val: additionalItems.filter(i => !i.is_owned).length, ack: true });
         } catch (e) {
             this.log.warn(`fetchShoppingList: ${e.message}`);
         }
@@ -418,27 +607,30 @@ class CookidooAdapter extends utils.Adapter {
 
     async fetchCalendar() {
         try {
-            const lang = this.loc.language;
+            const lang  = this.loc.language;
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            const json = await this.apiGet(`/planning/${lang}/api/my-week/${today}`);
+            // Spezifischer Accept-Header laut Raw-API-Mitschnitt
+            const json  = await this.apiGetWithAccept(
+                `/planning/${lang}/api/my-week/${today}`,
+                'application/vnd.vorwerk.planning.my-day.mobile+json',
+            );
 
-            const days = Array.isArray(json) ? json : (json.days ?? [json]);
+            // Root-Key ist "myDays"
+            const days = json.myDays ?? [];
             const week = days.map(day => ({
-                id: day.id,
-                title: day.title,
-                recipes: [
-                    ...(day.recipes ?? []).map(r => ({ id: r.id, name: r.title, totalTime: r.totalTime })),
-                    ...(day.customerRecipes ?? []).map(r => ({ id: r.id, name: r.title, totalTime: r.totalTime, custom: true })),
-                ],
+                id:      day.id,
+                title:   day.title,
+                recipes: (day.recipes ?? []).map(r => ({
+                    id:        r.id,
+                    name:      r.title,
+                    totalTime: Number(r.totalTime ?? 0),
+                })),
+                customRecipeIds: day.customerRecipeIds ?? [],
             }));
             await this.setState('calendar.week', { val: JSON.stringify(week), ack: true });
 
-            // Heutigen Tag ermitteln
-            const todayTitle = new Date().toLocaleDateString('de-DE', { weekday: 'long' });
-            const todayDay = week.find(d =>
-                d.id === today ||
-                (d.title && d.title.toLowerCase().includes(todayTitle.toLowerCase()))
-            ) ?? week[0] ?? null;
+            // Heutigen Tag per ID (YYYY-MM-DD) suchen
+            const todayDay = week.find(d => d.id === today) ?? null;
             await this.setState('calendar.todayRecipes', {
                 val: JSON.stringify(todayDay ? todayDay.recipes : []), ack: true,
             });
@@ -447,169 +639,246 @@ class CookidooAdapter extends utils.Adapter {
         }
     }
 
-    async fetchCollections() {
+    async fetchCustomRecipes() {
         try {
             const lang = this.loc.language;
-
-            // Vorwerk-Kollektionen
-            try {
-                const managed = await this.apiGetWithAccept(
-                    `/organize/${lang}/api/managed-list`,
-                    'application/vnd.vorwerk.organize.managed-list.mobile+json',
-                );
-                const managedList = (managed.managedlists ?? []).map(c => ({
-                    id: c.id,
-                    name: c.title,
-                    chapters: (c.chapters ?? []).map(ch => ({
-                        name: ch.title,
-                        recipesCount: (ch.recipes ?? []).length,
-                    })),
-                }));
-                await this.setState('collections.managed', { val: JSON.stringify(managedList), ack: true });
-                await this.setState('collections.managedCount', { val: managedList.length, ack: true });
-            } catch (e) {
-                this.log.warn(`fetchManagedCollections: ${e.message}`);
-            }
-
-            // Eigene Kollektionen
-            try {
-                const custom = await this.apiGetWithAccept(
-                    `/organize/${lang}/api/custom-list`,
-                    'application/vnd.vorwerk.organize.custom-list.mobile+json',
-                );
-                const customList = (custom.customlists ?? []).map(c => ({
-                    id: c.id,
-                    name: c.title,
-                    description: c.description ?? null,
-                    chapters: (c.chapters ?? []).map(ch => ({
-                        name: ch.title,
-                        recipesCount: (ch.recipes ?? []).length,
-                    })),
-                }));
-                await this.setState('collections.custom', { val: JSON.stringify(customList), ack: true });
-                await this.setState('collections.customCount', { val: customList.length, ack: true });
-            } catch (e) {
-                this.log.warn(`fetchCustomCollections: ${e.message}`);
-            }
+            const json = await this.apiGetWithAccept(
+                `/created-recipes/${lang}`,
+                'application/vnd.vorwerk.customer-recipe.full+json',
+            );
+            const items = (json.items ?? []).map(r => ({
+                id:          r.recipeId,
+                name:        r.recipeContent?.name ?? '',
+                servingSize: r.recipeContent?.yield?.value ?? 0,
+                totalTime:   r.recipeContent?.totalTime ?? 0,
+                status:      r.status ?? '',
+                basedOn:     r.recipeContent?.isBasedOn ?? null,
+            }));
+            await this.setState('customRecipes.list',  { val: JSON.stringify(items), ack: true });
+            await this.setState('customRecipes.count', { val: items.length, ack: true });
         } catch (e) {
-            this.log.warn(`fetchCollections: ${e.message}`);
+            this.log.warn(`fetchCustomRecipes: ${e.message}`);
+        }
+    }
+
+    async fetchCollections() {
+        const lang = this.loc.language;
+
+        try {
+            const managed = await this.apiGetWithAccept(
+                `/organize/${lang}/api/managed-list`,
+                'application/vnd.vorwerk.organize.managed-list.mobile+json',
+            );
+            const managedList = (managed.managedlists ?? []).map(c => ({
+                id:       c.id,
+                name:     c.title,
+                chapters: (c.chapters ?? []).map(ch => ({
+                    name:         ch.title,
+                    recipesCount: (ch.recipes ?? []).length,
+                })),
+            }));
+            await this.setState('collections.managed',      { val: JSON.stringify(managedList), ack: true });
+            await this.setState('collections.managedCount', { val: managedList.length, ack: true });
+        } catch (e) {
+            this.log.warn(`fetchManagedCollections: ${e.message}`);
+        }
+
+        try {
+            const custom = await this.apiGetWithAccept(
+                `/organize/${lang}/api/custom-list`,
+                'application/vnd.vorwerk.organize.custom-list.mobile+json',
+            );
+            const customList = (custom.customlists ?? []).map(c => ({
+                id:          c.id,
+                name:        c.title,
+                description: c.description ?? null,
+                chapters:    (c.chapters ?? []).map(ch => ({
+                    name:         ch.title,
+                    recipesCount: (ch.recipes ?? []).length,
+                })),
+            }));
+            await this.setState('collections.custom',      { val: JSON.stringify(customList), ack: true });
+            await this.setState('collections.customCount', { val: customList.length, ack: true });
+        } catch (e) {
+            this.log.warn(`fetchCustomCollections: ${e.message}`);
         }
     }
 
     // -------------------------------------------------------------------------
-    // Schreibende Aktionen
+    // Schreibende API-Aufrufe: Einkaufsliste
     // -------------------------------------------------------------------------
 
     async clearShoppingList() {
-        try {
-            const lang = this.loc.language;
-            // Zuerst alle Rezepte von der Einkaufsliste holen
-            const json = await this.apiGet(`/shopping/${lang}`);
-            const recipeIds = (json.recipes ?? []).map(r => r.id);
-
-            if (recipeIds.length > 0) {
-                await this.apiPost(`/shopping/${lang}/recipes/remove`, { recipeIds });
-            }
-
-            // Zusätzliche Artikel entfernen
-            const additionalIds = (json.additionalItems ?? []).map(i => i.id);
-            if (additionalIds.length > 0) {
-                await this.apiPost(`/shopping/${lang}/additional-items/remove`, { ids: additionalIds });
-            }
-
-            this.log.info(`Einkaufsliste geleert (${recipeIds.length} Rezept(e), ${additionalIds.length} Zusatzartikel).`);
-            await this.fetchShoppingList();
-        } catch (e) {
-            this.log.error(`clearShoppingList: ${e.message}`);
-        }
+        // DELETE /shopping/{language} löscht alles auf einmal
+        const lang = this.loc.language;
+        await this.apiDelete(`/shopping/${lang}`);
+        this.log.info('Einkaufsliste geleert.');
+        await this.fetchShoppingList();
     }
 
     /**
-     * Alle Rezept-Zutaten als vorhanden / fehlend markieren.
+     * @param {string[]} recipeIDs  Rezept-IDs (r123456) zum Hinzufügen
+     */
+    async addRecipesToShopping(recipeIDs) {
+        const lang = this.loc.language;
+        await this.apiPost(`/shopping/${lang}/recipes/add`, { recipeIDs });
+    }
+
+    /**
+     * @param {string[]} recipeIDs  ULIDs aus shopping.recipes[].id
+     */
+    async removeRecipesFromShopping(recipeIDs) {
+        const lang = this.loc.language;
+        await this.apiPost(`/shopping/${lang}/recipes/remove`, { recipeIDs });
+    }
+
+    /**
+     * @param {string} itemName
+     */
+    async addAdditionalItem(itemName) {
+        const lang = this.loc.language;
+        await this.apiPost(`/shopping/${lang}/additional-items/add`, { itemsValue: [itemName] });
+    }
+
+    /**
+     * @param {string[]} additionalItemIDs
+     */
+    async removeAdditionalItems(additionalItemIDs) {
+        const lang = this.loc.language;
+        await this.apiPost(`/shopping/${lang}/additional-items/remove`, { additionalItemIDs });
+    }
+
+    /**
      * @param {boolean} owned
      */
     async markAllIngredientsOwned(owned) {
-        try {
-            const lang = this.loc.language;
-            const json = await this.apiGet(`/shopping/${lang}`);
-            const items = json.items ?? [];
-
-            if (items.length === 0) {
-                this.log.info('Keine Zutaten auf der Einkaufsliste.');
-                return;
-            }
-
-            const payload = {
-                ownedIngredients: items.map(i => ({ id: i.id, isOwned: owned })),
-            };
-            await this.apiPost(`/shopping/${lang}/owned-ingredients/ownership/edit`, payload);
-
-            this.log.info(`${items.length} Zutaten als ${owned ? 'vorhanden' : 'fehlend'} markiert.`);
-            await this.fetchShoppingList();
-        } catch (e) {
-            this.log.error(`markAllIngredientsOwned: ${e.message}`);
+        const lang = this.loc.language;
+        const json  = await this.apiGet(`/shopping/${lang}`);
+        const items = json.items ?? [];
+        if (items.length === 0) {
+            this.log.info('Keine Zutaten auf der Einkaufsliste.');
+            return;
         }
+        const ts = Date.now();
+        await this.apiPost(`/shopping/${lang}/owned-ingredients/ownership/edit`, {
+            ingredients: items.map(i => ({ id: i.id, isOwned: owned, ownedTimestamp: ts })),
+        });
+        this.log.info(`${items.length} Zutat(en) als ${owned ? 'vorhanden' : 'fehlend'} markiert.`);
+        await this.fetchShoppingList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Schreibende API-Aufrufe: Kalender
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param {string} dayKey   YYYY-MM-DD
+     * @param {string[]} recipeIds
+     */
+    async addRecipeToCalendar(dayKey, recipeIds) {
+        const lang = this.loc.language;
+        await this.apiPut(`/planning/${lang}/api/my-day`, { dayKey, recipeIds });
+    }
+
+    /**
+     * @param {string} dayKey     YYYY-MM-DD
+     * @param {string} recipeId
+     */
+    async removeRecipeFromCalendar(dayKey, recipeId) {
+        const lang = this.loc.language;
+        await this.apiDelete(`/planning/${lang}/api/my-day/${dayKey}/recipes/${recipeId}`);
+    }
+
+    // -------------------------------------------------------------------------
+    // Schreibende API-Aufrufe: Eigene Rezepte
+    // -------------------------------------------------------------------------
+
+    /**
+     * Kopiert ein bestehendes Cookidoo-Rezept in "Meine Rezepte".
+     * @param {string} recipeUrl   Vollständige Cookidoo-URL
+     * @param {number} servingSize Portionen
+     */
+    async copyCustomRecipe(recipeUrl, servingSize = 4) {
+        const lang = this.loc.language;
+        await this.apiPost(`/created-recipes/${lang}`, { recipeUrl, servingSize });
+        this.log.info(`Rezept kopiert: ${recipeUrl}`);
+    }
+
+    /**
+     * @param {string} recipeId  ID aus customRecipes.list[].id
+     */
+    async deleteCustomRecipe(recipeId) {
+        const lang = this.loc.language;
+        await this.apiDelete(`/created-recipes/${lang}/${recipeId}`);
+    }
+
+    // -------------------------------------------------------------------------
+    // Schreibende API-Aufrufe: Kollektionen
+    // -------------------------------------------------------------------------
+
+    async addManagedCollection(collectionId) {
+        const lang = this.loc.language;
+        await this.apiPost(`/organize/${lang}/api/managed-list`, { id: collectionId });
+    }
+
+    async removeManagedCollection(collectionId) {
+        const lang = this.loc.language;
+        await this.apiDelete(`/organize/${lang}/api/managed-list/${collectionId}`);
+    }
+
+    async addCustomCollection(title) {
+        const lang = this.loc.language;
+        await this.apiPost(`/organize/${lang}/api/custom-list`, {
+            title,
+            chapters: [{ title: '', recipes: [] }],
+        });
+    }
+
+    async removeCustomCollection(collectionId) {
+        const lang = this.loc.language;
+        await this.apiDelete(`/organize/${lang}/api/custom-list/${collectionId}`);
     }
 
     // -------------------------------------------------------------------------
     // HTTP-Hilfsmethoden
     // -------------------------------------------------------------------------
 
-    /**
-     * Authentifizierter GET-Request gegen die Cookidoo-API.
-     * @param {string} path
-     * @returns {Promise<any>}
-     */
     apiGet(path) {
         return this._apiRequest('GET', path, null, null);
     }
 
-    /**
-     * GET mit spezifischem Accept-Header (für Kollektionen nötig).
-     * @param {string} path
-     * @param {string} accept
-     * @returns {Promise<any>}
-     */
     apiGetWithAccept(path, accept) {
         return this._apiRequest('GET', path, null, accept);
     }
 
-    /**
-     * Authentifizierter POST-Request.
-     * @param {string} path
-     * @param {object} body
-     * @returns {Promise<any>}
-     */
     apiPost(path, body) {
         return this._apiRequest('POST', path, body, null);
     }
 
-    /**
-     * @param {'GET'|'POST'} method
-     * @param {string} path
-     * @param {object|null} body
-     * @param {string|null} accept
-     */
+    apiPut(path, body) {
+        return this._apiRequest('PUT', path, body, null);
+    }
+
+    apiDelete(path) {
+        return this._apiRequest('DELETE', path, null, null);
+    }
+
     async _apiRequest(method, path, body, accept) {
         if (!this.authData) throw new Error('Nicht eingeloggt.');
-
-        const cc = this.loc.country_code;
         const bodyStr = body ? JSON.stringify(body) : null;
-
         const headers = {
-            'Accept': accept ?? 'application/json',
-            'Authorization': `${this.authData.token_type} ${this.authData.access_token}`,
-            'User-Agent': COOKIDOO_USER_AGENT,
-            'Cookie': COOKIDOO_COOKIE,
+            'Accept':          accept ?? 'application/json',
+            'Authorization':   `${this.authData.token_type} ${this.authData.access_token}`,
+            'User-Agent':      COOKIDOO_USER_AGENT,
+            'Cookie':          COOKIDOO_COOKIE,
             'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
         };
         if (bodyStr) {
-            headers['Content-Type'] = 'application/json';
+            headers['Content-Type']   = 'application/json; charset=UTF-8';
             headers['Content-Length'] = Buffer.byteLength(bodyStr);
         }
-
         return this.httpsRequest({
-            hostname: `${cc}.tmmobile.vorwerk-digital.com`,
+            hostname: `${this.loc.country_code}.tmmobile.vorwerk-digital.com`,
             path,
             method,
             headers,
@@ -617,7 +886,6 @@ class CookidooAdapter extends utils.Adapter {
     }
 
     /**
-     * Generischer HTTPS-Request, gibt geparsten JSON zurück.
      * @param {import('node:https').RequestOptions} options
      * @param {string|null} body
      * @returns {Promise<any>}
@@ -629,22 +897,13 @@ class CookidooAdapter extends utils.Adapter {
                 res.on('data', chunk => (raw += chunk));
                 res.on('error', reject);
                 res.on('end', () => {
-                    if (res.statusCode === 401) {
-                        reject(new Error(`HTTP 401 Unauthorized – Token abgelaufen?`));
-                        return;
-                    }
-                    if (res.statusCode === 403) {
-                        reject(new Error(`HTTP 403 Forbidden – kein Zugriff auf ${options.path}`));
-                        return;
-                    }
+                    if (res.statusCode === 401) { reject(new Error('HTTP 401 – Token abgelaufen')); return; }
+                    if (res.statusCode === 403) { reject(new Error(`HTTP 403 – kein Zugriff auf ${options.path}`)); return; }
                     if (res.statusCode && res.statusCode >= 400) {
-                        reject(new Error(`HTTP ${res.statusCode} für ${options.path}: ${raw.slice(0, 200)}`));
+                        reject(new Error(`HTTP ${res.statusCode} für ${options.path}: ${raw.slice(0, 300)}`));
                         return;
                     }
-                    if (!raw) {
-                        resolve({});
-                        return;
-                    }
+                    if (!raw) { resolve({}); return; }
                     try {
                         resolve(JSON.parse(raw));
                     } catch {
@@ -652,13 +911,8 @@ class CookidooAdapter extends utils.Adapter {
                     }
                 });
             });
-
             req.on('error', reject);
-            req.on('timeout', () => {
-                req.destroy();
-                reject(new Error(`Timeout für ${options.path}`));
-            });
-
+            req.on('timeout', () => { req.destroy(); reject(new Error(`Timeout für ${options.path}`)); });
             if (body) req.write(body);
             req.end();
         });
@@ -668,24 +922,28 @@ class CookidooAdapter extends utils.Adapter {
     // Hilfsmethoden
     // -------------------------------------------------------------------------
 
-    /**
-     * Zutatenbeschreibung aus API-Objekt zusammenbauen.
-     * @param {any} item
-     * @returns {string}
-     */
     _formatDescription(item) {
         if (!item.quantity) return '';
-        const qty = item.quantity.value
-            ?? (item.quantity.from && item.quantity.to
-                ? `${item.quantity.from} - ${item.quantity.to}`
-                : '');
+        const qty = item.quantity.value != null
+            ? item.quantity.value
+            : (item.quantity.from && item.quantity.to ? `${item.quantity.from} - ${item.quantity.to}` : '');
         return item.unitNotation ? `${qty} ${item.unitNotation}` : String(qty);
     }
 
     /**
-     * Verbindungsfehler loggen — je nach Einstellung als warn oder debug.
-     * @param {string} msg
+     * JSON sicher parsen — gibt null zurück und loggt bei Fehler.
+     * @param {string} val
+     * @param {string} context
      */
+    _parseJson(val, context) {
+        try {
+            return JSON.parse(val);
+        } catch {
+            this.log.error(`${context}: Ungültiges JSON: ${val}`);
+            return null;
+        }
+    }
+
     logConnError(msg) {
         if (this.config.suppressConnectionErrors) {
             this.log.debug(msg);
