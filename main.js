@@ -335,7 +335,6 @@ class CookidooAdapter extends utils.Adapter {
                 'User-Agent': COOKIDOO_USER_AGENT,
                 'Cookie': COOKIDOO_COOKIE,
                 'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
-                'Accept-Encoding': 'gzip',
                 'Content-Length': Buffer.byteLength(body),
             },
         }, body);
@@ -603,7 +602,6 @@ class CookidooAdapter extends utils.Adapter {
             'User-Agent': COOKIDOO_USER_AGENT,
             'Cookie': COOKIDOO_COOKIE,
             'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
-            'Accept-Encoding': 'gzip',
         };
         if (bodyStr) {
             headers['Content-Type'] = 'application/json';
