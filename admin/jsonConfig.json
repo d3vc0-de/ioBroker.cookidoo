@@ -1,0 +1,73 @@
+{
+	"i18n": true,
+	"type": "panel",
+	"items": {
+		"email": {
+			"type": "text",
+			"label": "email",
+			"newLine": true,
+			"xs": 12,
+			"sm": 12,
+			"md": 6,
+			"lg": 5,
+			"xl": 4
+		},
+		"password": {
+			"type": "password",
+			"label": "password",
+			"newLine": false,
+			"xs": 12,
+			"sm": 12,
+			"md": 6,
+			"lg": 5,
+			"xl": 4
+		},
+		"language": {
+			"type": "select",
+			"label": "language",
+			"newLine": true,
+			"options": [
+				{ "value": "de-DE", "label": "Deutsch (Deutschland)" },
+				{ "value": "de-AT", "label": "Deutsch (Österreich)" },
+				{ "value": "de-CH", "label": "Deutsch (Schweiz)" },
+				{ "value": "en-GB", "label": "English (UK)" },
+				{ "value": "en-AU", "label": "English (Australia)" },
+				{ "value": "fr-FR", "label": "Français (France)" },
+				{ "value": "fr-BE", "label": "Français (Belgique)" },
+				{ "value": "it-IT", "label": "Italiano" },
+				{ "value": "es-ES", "label": "Español" },
+				{ "value": "nl-NL", "label": "Nederlands" },
+				{ "value": "pt-PT", "label": "Português" },
+				{ "value": "ja-JP", "label": "日本語" },
+				{ "value": "zh-CN", "label": "中文" }
+			],
+			"xs": 12,
+			"sm": 12,
+			"md": 6,
+			"lg": 4,
+			"xl": 3
+		},
+		"pollInterval": {
+			"type": "number",
+			"label": "pollInterval",
+			"min": 60,
+			"max": 3600,
+			"newLine": false,
+			"xs": 12,
+			"sm": 12,
+			"md": 6,
+			"lg": 4,
+			"xl": 3
+		},
+		"suppressConnectionErrors": {
+			"type": "checkbox",
+			"label": "suppressConnectionErrors",
+			"newLine": true,
+			"xs": 12,
+			"sm": 12,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		}
+	}
+}

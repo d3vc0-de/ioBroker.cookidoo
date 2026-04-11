@@ -1,0 +1,7 @@
+{
+	"email": "E-Mail-Adresse",
+	"password": "Passwort",
+	"language": "Sprache / Region",
+	"pollInterval": "Abfrageintervall (Sekunden)",
+	"suppressConnectionErrors": "Verbindungsfehler nur als Debug-Meldung"
+}

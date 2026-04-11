@@ -1,0 +1,57 @@
+{
+  "name": "iobroker.cookidoo",
+  "version": "0.1.0",
+  "description": "ioBroker Adapter für die Cookidoo Rezept- und Einkaufslistenplattform (Thermomix)",
+  "author": {
+    "name": "alex",
+    "email": "d3vc0_de@proton.me"
+  },
+  "homepage": "https://github.com/d3vc0-de/ioBroker.cookidoo",
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "cookidoo",
+    "thermomix",
+    "vorwerk",
+    "shopping",
+    "recipes"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/d3vc0-de/ioBroker.cookidoo.git"
+  },
+  "engines": {
+    "node": ">= 20"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.3.2"
+  },
+  "devDependencies": {
+    "@iobroker/adapter-dev": "^1.5.0",
+    "@iobroker/eslint-config": "^2.2.0",
+    "@iobroker/testing": "^5.2.2",
+    "@tsconfig/node20": "^20.1.9",
+    "@types/node": "^20.19.37",
+    "typescript": "~5.9.3"
+  },
+  "main": "main.js",
+  "files": [
+    "admin{,/!(src)/**}/!(tsconfig|tsconfig.*|.eslintrc).{json,json5}",
+    "admin{,/!(src)/**}/*.{html,css,png,svg,jpg,js}",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
+  "scripts": {
+    "test:package": "mocha test/package --exit",
+    "test": "npm run test:package",
+    "lint": "eslint -c eslint.config.mjs .",
+    "translate": "translate-adapter",
+    "release": "release-script",
+    "dev-server": "dev-server"
+  },
+  "bugs": {
+    "url": "https://github.com/d3vc0-de/ioBroker.cookidoo/issues"
+  },
+  "readmeFilename": "README.md"
+}

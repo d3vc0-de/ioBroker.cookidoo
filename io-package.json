@@ -1,0 +1,79 @@
+{
+	"common": {
+		"name": "cookidoo",
+		"version": "0.1.0",
+		"news": {
+			"0.1.0": {
+				"en": "Initial release",
+				"de": "Erstveröffentlichung"
+			}
+		},
+		"titleLang": {
+			"en": "Cookidoo",
+			"de": "Cookidoo"
+		},
+		"desc": {
+			"en": "Adapter for the Cookidoo recipe and shopping list platform (Thermomix/Vorwerk)",
+			"de": "Adapter für die Cookidoo Rezept- und Einkaufslistenplattform (Thermomix/Vorwerk)"
+		},
+		"authors": [
+			"alex <d3vc0_de@proton.me>"
+		],
+		"keywords": [
+			"cookidoo",
+			"thermomix",
+			"vorwerk",
+			"shopping",
+			"recipes"
+		],
+		"licenseInformation": {
+			"type": "free",
+			"license": "MIT"
+		},
+		"platform": "Javascript/Node.js",
+		"enabled": true,
+		"loglevel": "info",
+		"tier": 3,
+		"mode": "daemon",
+		"type": "household",
+		"compact": true,
+		"connectionType": "cloud",
+		"dataSource": "poll",
+		"adminUI": {
+			"config": "json"
+		},
+		"dependencies": [
+			{
+				"js-controller": ">=6.0.11"
+			}
+		],
+		"globalDependencies": [
+			{
+				"admin": ">=7.0.23"
+			}
+		]
+	},
+	"native": {
+		"email": "",
+		"password": "",
+		"language": "de-DE",
+		"pollInterval": 300,
+		"suppressConnectionErrors": false
+	},
+	"objects": [],
+	"instanceObjects": [
+		{
+			"_id": "info.connection",
+			"type": "state",
+			"common": {
+				"name": "Connection",
+				"type": "boolean",
+				"role": "indicator.connected",
+				"read": true,
+				"write": false,
+				"def": false
+			},
+			"native": {}
+		}
+	]
+}
