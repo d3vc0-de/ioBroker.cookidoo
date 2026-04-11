@@ -8,6 +8,8 @@ const querystring = require('node:querystring');
 // Cookidoo API Konstanten (aus dem offiziellen Python-Paket miaucl/cookidoo-api)
 // ---------------------------------------------------------------------------
 const COOKIDOO_AUTH_HEADER = 'Basic a3VwZmVyd2Vyay1jbGllbnQtbndvdDpMczUwT04xd295U3FzMWRDZEpnZQ==';
+const COOKIDOO_USER_AGENT = 'Thermomix/5427 (iPhone; iOS11.2; Scale/3.00)';
+const COOKIDOO_COOKIE = 'vrkPreAccessGranted=true';
 const API_BASE = (cc) => `https://${cc}.tmmobile.vorwerk-digital.com`;
 
 /** Sprachcode → { country_code, language } */
@@ -299,11 +301,11 @@ class CookidooAdapter extends utils.Adapter {
     // -------------------------------------------------------------------------
 
     async login() {
+        // Laut Raw-API-Mitschnitt: kein client_id im Login-Body, nur username/password/grant_type
         const body = querystring.stringify({
             grant_type: 'password',
             username: this.config.email,
             password: this.config.password,
-            client_id: 'kupferwerk-client-nwot',
         });
         await this._requestToken(body);
         this.log.info('Cookidoo Login erfolgreich.');
@@ -330,6 +332,10 @@ class CookidooAdapter extends utils.Adapter {
                 'Accept': 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': COOKIDOO_AUTH_HEADER,
+                'User-Agent': COOKIDOO_USER_AGENT,
+                'Cookie': COOKIDOO_COOKIE,
+                'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
+                'Accept-Encoding': 'gzip',
                 'Content-Length': Buffer.byteLength(body),
             },
         }, body);
@@ -594,6 +600,10 @@ class CookidooAdapter extends utils.Adapter {
         const headers = {
             'Accept': accept ?? 'application/json',
             'Authorization': `${this.authData.token_type} ${this.authData.access_token}`,
+            'User-Agent': COOKIDOO_USER_AGENT,
+            'Cookie': COOKIDOO_COOKIE,
+            'Accept-Language': `${this.loc.language};q=1, en;q=0.9`,
+            'Accept-Encoding': 'gzip',
         };
         if (bodyStr) {
             headers['Content-Type'] = 'application/json';
