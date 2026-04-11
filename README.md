@@ -13,7 +13,13 @@
 
 This adapter integrates the **Cookidoo** recipe and shopping list platform (Thermomix/Vorwerk) into ioBroker. It synchronises your shopping list, weekly meal plan and recipe collections and exposes them as ioBroker states — ready to use in dashboards, scripts and automations.
 
-> **Disclaimer:** This adapter is not affiliated with or endorsed by Vorwerk International & Co. KmG or any of its subsidiaries. Cookidoo® and Thermomix® are registered trademarks of Vorwerk. All product names and trademarks belong to their respective owners. This adapter uses an unofficial, reverse-engineered API and may break at any time if Vorwerk changes their backend.
+> ⚠️ **EXPERIMENTAL — FOR PERSONAL TESTING ONLY**
+>
+> This adapter is an **unofficial, experimental proof of concept** intended solely for private testing of technical possibilities. It is **not** intended for production use.
+>
+> This adapter accesses the Cookidoo platform via an **unofficial, reverse-engineered API** that is **not publicly documented or approved by Vorwerk**. Using this adapter may violate the [Cookidoo Terms of Service](https://www.cookidoo.de/legal/terms). **Use entirely at your own risk.** The authors accept no liability for account suspensions, data loss, or any other consequences.
+>
+> This adapter is not affiliated with, endorsed by, or in any way connected to Vorwerk International & Co. KmG or any of its subsidiaries. Cookidoo® and Thermomix® are registered trademarks of Vorwerk. The API may stop working at any time without notice.
 
 ---
 
