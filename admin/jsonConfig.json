@@ -5,6 +5,7 @@
 		"headerCredentials": {
 			"type": "header",
 			"text": "headerCredentials",
+			"size": "medium",
 			"newLine": true,
 			"xs": 12
 		},
@@ -59,6 +60,7 @@
 		"headerData": {
 			"type": "header",
 			"text": "headerData",
+			"size": "medium",
 			"newLine": true,
 			"xs": 12
 		},
