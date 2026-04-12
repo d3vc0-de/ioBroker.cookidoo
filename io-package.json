@@ -36,6 +36,7 @@
 		"tier": 3,
 		"mode": "daemon",
 		"type": "household",
+		"icon": "cookidoo.png",
 		"compact": true,
 		"connectionType": "cloud",
 		"dataSource": "poll",
@@ -58,7 +59,12 @@
 		"password": "",
 		"language": "de-DE",
 		"pollInterval": 300,
-		"suppressConnectionErrors": false
+		"suppressConnectionErrors": false,
+		"enableShopping": true,
+		"enableCalendar": true,
+		"enableCustomRecipes": true,
+		"enableManagedCollections": true,
+		"enableCustomCollections": true
 	},
 	"objects": [],
 	"instanceObjects": [

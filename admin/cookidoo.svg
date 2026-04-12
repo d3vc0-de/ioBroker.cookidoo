@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Chef hat -->
+  <!-- Brim / band -->
+  <rect x="18" y="68" width="64" height="14" rx="4" fill="#ffffff" stroke="#cccccc" stroke-width="2"/>
+  <!-- Hat body -->
+  <path d="M30 68 Q28 52 22 44 Q16 36 22 28 Q28 18 38 20 Q42 14 50 14 Q58 14 62 20 Q72 18 78 28 Q84 36 78 44 Q72 52 70 68 Z" fill="#ffffff" stroke="#cccccc" stroke-width="2"/>
+</svg>

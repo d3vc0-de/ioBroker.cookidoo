@@ -2,25 +2,22 @@
 	"i18n": true,
 	"type": "panel",
 	"items": {
+		"headerCredentials": {
+			"type": "header",
+			"text": "headerCredentials",
+			"newLine": true
+		},
 		"email": {
 			"type": "text",
 			"label": "email",
 			"newLine": true,
-			"xs": 12,
-			"sm": 12,
-			"md": 6,
-			"lg": 5,
-			"xl": 4
+			"xs": 12, "sm": 12, "md": 6, "lg": 5, "xl": 4
 		},
 		"password": {
 			"type": "password",
 			"label": "password",
 			"newLine": false,
-			"xs": 12,
-			"sm": 12,
-			"md": 6,
-			"lg": 5,
-			"xl": 4
+			"xs": 12, "sm": 12, "md": 6, "lg": 5, "xl": 4
 		},
 		"language": {
 			"type": "select",
@@ -41,11 +38,7 @@
 				{ "value": "ja-JP", "label": "日本語" },
 				{ "value": "zh-CN", "label": "中文" }
 			],
-			"xs": 12,
-			"sm": 12,
-			"md": 6,
-			"lg": 4,
-			"xl": 3
+			"xs": 12, "sm": 12, "md": 6, "lg": 4, "xl": 3
 		},
 		"pollInterval": {
 			"type": "number",
@@ -53,21 +46,49 @@
 			"min": 60,
 			"max": 3600,
 			"newLine": false,
-			"xs": 12,
-			"sm": 12,
-			"md": 6,
-			"lg": 4,
-			"xl": 3
+			"xs": 12, "sm": 12, "md": 6, "lg": 4, "xl": 3
 		},
 		"suppressConnectionErrors": {
 			"type": "checkbox",
 			"label": "suppressConnectionErrors",
 			"newLine": true,
-			"xs": 12,
-			"sm": 12,
-			"md": 6,
-			"lg": 4,
-			"xl": 4
+			"xs": 12, "sm": 12, "md": 6, "lg": 4, "xl": 4
+		},
+
+		"headerData": {
+			"type": "header",
+			"text": "headerData",
+			"newLine": true
+		},
+		"enableShopping": {
+			"type": "checkbox",
+			"label": "enableShopping",
+			"newLine": true,
+			"xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+		},
+		"enableCalendar": {
+			"type": "checkbox",
+			"label": "enableCalendar",
+			"newLine": false,
+			"xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+		},
+		"enableCustomRecipes": {
+			"type": "checkbox",
+			"label": "enableCustomRecipes",
+			"newLine": false,
+			"xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+		},
+		"enableManagedCollections": {
+			"type": "checkbox",
+			"label": "enableManagedCollections",
+			"newLine": true,
+			"xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
+		},
+		"enableCustomCollections": {
+			"type": "checkbox",
+			"label": "enableCustomCollections",
+			"newLine": false,
+			"xs": 12, "sm": 6, "md": 4, "lg": 3, "xl": 3
 		}
 	}
 }

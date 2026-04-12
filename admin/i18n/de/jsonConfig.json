@@ -1,7 +1,14 @@
 {
+	"headerCredentials": "Zugangsdaten",
 	"email": "E-Mail-Adresse",
 	"password": "Passwort",
 	"language": "Sprache / Region",
 	"pollInterval": "Abfrageintervall (Sekunden)",
-	"suppressConnectionErrors": "Verbindungsfehler nur als Debug-Meldung"
+	"suppressConnectionErrors": "Verbindungsfehler nur als Debug-Meldung",
+	"headerData": "Datenbereiche",
+	"enableShopping": "Einkaufsliste",
+	"enableCalendar": "Wochenkalender",
+	"enableCustomRecipes": "Meine Rezepte",
+	"enableManagedCollections": "Vorwerk-Kollektionen",
+	"enableCustomCollections": "Eigene Kollektionen"
 }
