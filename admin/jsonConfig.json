@@ -5,7 +5,8 @@
 		"headerCredentials": {
 			"type": "header",
 			"text": "headerCredentials",
-			"newLine": true
+			"newLine": true,
+			"xs": 12
 		},
 		"email": {
 			"type": "text",
@@ -58,7 +59,8 @@
 		"headerData": {
 			"type": "header",
 			"text": "headerData",
-			"newLine": true
+			"newLine": true,
+			"xs": 12
 		},
 		"enableShopping": {
 			"type": "checkbox",
