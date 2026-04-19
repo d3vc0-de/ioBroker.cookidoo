@@ -1,0 +1,14 @@
+{
+  "name": "cookidoo",
+  "version": "0.1.0",
+  "engine": "node",
+  "language": "javascript",
+  "tools": [
+    "eslint",
+    "prettier",
+    "typescript"
+  ],
+  "features": [
+    "adapter"
+  ]
+}

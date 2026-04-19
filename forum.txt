@@ -1,0 +1,40 @@
+[Neuer Adapter] ioBroker.cookidoo – Cookidoo / Thermomix in ioBroker einbinden [Beta/Test]
+
+---
+
+Hallo zusammen,
+
+ich habe einen neuen Adapter entwickelt, der die Cookidoo-Plattform von Vorwerk/Thermomix in ioBroker integriert. Der Adapter nutzt die inoffizielle REST-API (basierend auf dem Open-Source-Projekt miaucl/cookidoo-api: https://github.com/miaucl/cookidoo-api) und ist aktuell im Teststadium – Feedback sehr willkommen!
+
+---
+
+Was kann der Adapter?
+
+- Einkaufsliste: Rezepte und Zusatzartikel anzeigen, Zutaten als vorhanden/fehlend markieren, Liste leeren
+- Wochenkalender: Geplante Rezepte der aktuellen Woche inkl. heutiger Tagesansicht
+- Meine Rezepte: Eigene und kopierte Rezepte abrufen, per URL neue kopieren, Rezepte löschen
+- Kollektionen: Vorwerk-Kollektionen und eigene Kollektionen mit allen Kapiteln und Rezepten
+- Aktionen: Alles steuerbar über beschreibbare States (Rezept hinzufügen, Kalender planen, Kollektion anlegen, …)
+- Konfigurierbar: Jeder Datenbereich (Einkaufsliste, Kalender, Rezepte, Kollektionen) kann einzeln aktiviert/deaktiviert werden – nur aktive Bereiche erzeugen Objects
+
+---
+
+Einrichtung
+
+1. Adapter manuell über GitHub-URL installieren:
+   https://github.com/d3vc0-de/ioBroker.cookidoo
+2. E-Mail und Passwort des Cookidoo-Accounts eintragen
+3. Sprache/Region wählen (de-DE, en-GB, fr-FR, …)
+4. Abfrageintervall und gewünschte Datenbereiche konfigurieren
+
+---
+
+Hinweis
+
+Der Adapter nutzt eine inoffizielle, reverse-engineerte API. Vorwerk kann diese jederzeit ändern oder sperren. Der Adapter ist daher ausdrücklich nur für Testzwecke gedacht – kein Produktiveinsatz empfohlen.
+
+---
+
+GitHub: https://github.com/d3vc0-de/ioBroker.cookidoo
+
+Über Rückmeldungen, Fehlerberichte und Ideen freue ich mich – gerne hier im Thread oder als Issue auf GitHub.

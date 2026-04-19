@@ -1,8 +1,12 @@
 {
 	"common": {
 		"name": "cookidoo",
-		"version": "0.1.0",
+		"version": "0.2.0",
 		"news": {
+			"0.2.0": {
+				"en": "Add testing boilerplate, linting and type checking fixes",
+				"de": "Testing-Boilerplate, Linting und Korrekturen für die Typprüfung hinzugefügt"
+			},
 			"0.1.0": {
 				"en": "Initial release",
 				"de": "Erstveröffentlichung"
@@ -31,12 +35,14 @@
 			"license": "MIT"
 		},
 		"platform": "Javascript/Node.js",
+		"icon": "cookidoo.png",
 		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/d3vc0-de/ioBroker.cookidoo/main/admin/cookidoo.png",
+		"readme": "https://github.com/d3vc0-de/ioBroker.cookidoo/blob/main/README.md",
 		"loglevel": "info",
 		"tier": 3,
 		"mode": "daemon",
 		"type": "household",
-		"icon": "cookidoo.png",
 		"compact": true,
 		"connectionType": "cloud",
 		"dataSource": "poll",

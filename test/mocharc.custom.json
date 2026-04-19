@@ -1,0 +1,8 @@
+{
+	"full-trace": true,
+	"reporter": "list",
+	"exit": true,
+	"require": [
+		"test/mocha.setup.js"
+	]
+}

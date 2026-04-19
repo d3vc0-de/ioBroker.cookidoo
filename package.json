@@ -1,6 +1,6 @@
 {
   "name": "iobroker.cookidoo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ioBroker Adapter für die Cookidoo Rezept- und Einkaufslistenplattform (Thermomix)",
   "author": {
     "name": "alex",
@@ -27,10 +27,16 @@
     "@iobroker/adapter-core": "^3.3.2"
   },
   "devDependencies": {
+    "@alcalzone/release-script": "^5.1.1",
+    "@alcalzone/release-script-plugin-iobroker": "^5.1.2",
+    "@alcalzone/release-script-plugin-license": "^5.1.1",
+    "@alcalzone/release-script-plugin-manual-review": "^5.1.1",
     "@iobroker/adapter-dev": "^1.5.0",
+    "@iobroker/dev-server": "^0.8.0",
     "@iobroker/eslint-config": "^2.2.0",
     "@iobroker/testing": "^5.2.2",
     "@tsconfig/node20": "^20.1.9",
+    "@types/iobroker": "npm:@iobroker/types@^7.1.1",
     "@types/node": "^20.19.37",
     "typescript": "~5.9.3"
   },
@@ -43,12 +49,17 @@
     "main.js"
   ],
   "scripts": {
+    "test:js": "mocha --config test/mocharc.custom.json \"{!(node_modules|test)/**/*.test.js,*.test.js,test/**/test!(PackageFiles|Startup).js}\"",
     "test:package": "mocha test/package --exit",
-    "test": "npm run test:package",
+    "test:integration": "mocha test/integration --exit",
+    "test": "npm run test:js && npm run test:package",
+    "check": "tsc --noEmit -p tsconfig.check.json",
     "lint": "eslint -c eslint.config.mjs .",
     "translate": "translate-adapter",
     "release": "release-script",
-    "dev-server": "dev-server"
+    "dev-server": "dev-server",
+    "setup": "dev-server setup",
+    "watch": "dev-server watch"
   },
   "bugs": {
     "url": "https://github.com/d3vc0-de/ioBroker.cookidoo/issues"
