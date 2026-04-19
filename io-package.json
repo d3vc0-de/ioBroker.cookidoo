@@ -76,14 +76,14 @@
 			{
 				"admin": ">=7.6.20"
 			}
-		],
-		"protectedNative": [
-			"password"
-		],
-		"encryptedNative": [
-			"password"
 		]
 	},
+	"protectedNative": [
+		"password"
+	],
+	"encryptedNative": [
+		"password"
+	],
 	"native": {
 		"email": "",
 		"password": "",
