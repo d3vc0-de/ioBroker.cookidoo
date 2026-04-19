@@ -14,11 +14,29 @@
 		},
 		"titleLang": {
 			"en": "Cookidoo",
-			"de": "Cookidoo"
+			"de": "Cookidoo",
+			"ru": "Cookidoo",
+			"pt": "Cookidoo",
+			"nl": "Cookidoo",
+			"fr": "Cookidoo",
+			"it": "Cookidoo",
+			"es": "Cookidoo",
+			"pl": "Cookidoo",
+			"uk": "Cookidoo",
+			"zh-cn": "Cookidoo"
 		},
 		"desc": {
 			"en": "Adapter for the Cookidoo recipe and shopping list platform (Thermomix/Vorwerk)",
-			"de": "Adapter für die Cookidoo Rezept- und Einkaufslistenplattform (Thermomix/Vorwerk)"
+			"de": "Adapter für die Cookidoo Rezept- und Einkaufslistenplattform (Thermomix/Vorwerk)",
+			"ru": "Адаптер для рецептов Cookidoo и платформы списка покупок (Thermomix/Vorwerk)",
+			"pt": "Adaptador para a plataforma de receitas e lista de compras Cookidoo (Thermomix/Vorwerk)",
+			"nl": "Adapter voor het Cookidoo recept en boodschappenlijst platform (Thermomix/Vorwerk)",
+			"fr": "Adaptateur pour la plateforme de recettes et de listes de courses Cookidoo (Thermomix/Vorwerk)",
+			"it": "Adattatore per la piattaforma di ricette e liste della spesa Cookidoo (Thermomix/Vorwerk)",
+			"es": "Adaptador para la plataforma de recetas y listas de la compra de Cookidoo (Thermomix/Vorwerk)",
+			"pl": "Adapter platformy przepisów i list zakupów Cookidoo (Thermomix/Vorwerk)",
+			"uk": "Адаптер для рецептів Cookidoo та платформи списку покупок (Thermomix/Vorwerk)",
+			"zh-cn": "Cookidoo 食谱和购物清单平台（Thermomix/Vorwerk）适配器"
 		},
 		"authors": [
 			"alex <d3vc0_de@proton.me>"
