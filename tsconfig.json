@@ -6,7 +6,12 @@
 		"checkJs": true,
 		"resolveJsonModule": true,
 		"noImplicitAny": false,
-		"useUnknownInCatchVariables": false
+		"useUnknownInCatchVariables": false,
+		"types": [
+			"node",
+			"mocha",
+			"chai"
+		]
 	},
 	"include": [
 		"**/*.js",
