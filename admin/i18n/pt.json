@@ -1,0 +1,14 @@
+{
+	"headerCredentials": "Credentials",
+	"email": "E-Mail address",
+	"password": "Password",
+	"language": "Language / Region",
+	"pollInterval": "Poll interval (seconds)",
+	"suppressConnectionErrors": "Log connection errors as debug only",
+	"headerData": "Data sections",
+	"enableShopping": "Shopping list",
+	"enableCalendar": "Weekly calendar",
+	"enableCustomRecipes": "My recipes",
+	"enableManagedCollections": "Vorwerk collections",
+	"enableCustomCollections": "Custom collections"
+}

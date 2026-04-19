@@ -74,8 +74,14 @@
 		],
 		"globalDependencies": [
 			{
-				"admin": ">=7.0.23"
+				"admin": ">=7.6.20"
 			}
+		],
+		"protectedNative": [
+			"password"
+		],
+		"encryptedNative": [
+			"password"
 		]
 	},
 	"native": {
