@@ -1067,7 +1067,7 @@ class CookidooAdapter extends utils.Adapter {
 
 	/**
 	 * @param {string} dayKey   YYYY-MM-DD
-	 * @param {string[]} recipeIds
+	 * @param {string[]} recipeIds - List of recipe IDs
 	 */
 	async addRecipeToCalendar(dayKey, recipeIds) {
 		const lang = this.loc.language;
@@ -1076,7 +1076,7 @@ class CookidooAdapter extends utils.Adapter {
 
 	/**
 	 * @param {string} dayKey     YYYY-MM-DD
-	 * @param {string} recipeId
+	 * @param {string} recipeId - Recipe ID
 	 */
 	async removeRecipeFromCalendar(dayKey, recipeId) {
 		const lang = this.loc.language;
@@ -1158,6 +1158,13 @@ class CookidooAdapter extends utils.Adapter {
 		return this._apiRequest('DELETE', path, null, null);
 	}
 
+	/**
+	 * @param {string} method - HTTP method
+	 * @param {string} path - API path
+	 * @param {any} body - Request body
+	 * @param {string|null} accept - Accept header
+	 * @returns {Promise<any>} - API response
+	 */
 	async _apiRequest(method, path, body, accept) {
 		if (!this.authData) {
 			throw new Error('Nicht eingeloggt.');
@@ -1186,9 +1193,9 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {import('node:https').RequestOptions} options
-	 * @param {string|null} body
-	 * @returns {Promise<any>}
+	 * @param {import('node:https').RequestOptions} options - Request options
+	 * @param {string|null} body - Request body
+	 * @returns {Promise<any>} - JSON response
 	 */
 	httpsRequest(options, body = null) {
 		return new Promise((resolve, reject) => {
@@ -1241,8 +1248,8 @@ class CookidooAdapter extends utils.Adapter {
 	 * Unterstützt: descriptiveAssets[] (Array), assets.images (Objekt), direkte URL (string).
 	 * Ersetzt {transformation} laut miaucl/cookidoo-api helpers.py.
 	 *
-	 * @param {any} assets
-	 * @returns {{ thumbnail: string|null, image: string|null }}
+	 * @param {any} assets - Assets object or string
+	 * @returns {{ thumbnail: string|null, image: string|null }} - Extracted images
 	 */
 	_extractImages(assets) {
 		let raw = null;
@@ -1283,8 +1290,8 @@ class CookidooAdapter extends utils.Adapter {
 	/**
 	 * JSON sicher parsen — gibt null zurück und loggt bei Fehler.
 	 *
-	 * @param {string} val
-	 * @param {string} context
+	 * @param {string} val - JSON string
+	 * @param {string} context - Error context
 	 */
 	_parseJson(val, context) {
 		try {
@@ -1306,7 +1313,7 @@ class CookidooAdapter extends utils.Adapter {
 
 if (require.main !== module) {
 	/**
-	 * @param {Partial<utils.AdapterOptions>} [options]
+	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
 	 */
 	module.exports = options => new CookidooAdapter(options);
 } else {
