@@ -33,7 +33,7 @@ const LOCALIZATIONS = {
 
 class CookidooAdapter extends utils.Adapter {
 	/**
-	 * @param {Partial<utils.AdapterOptions>} [options]
+	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
 	 */
 	constructor(options) {
 		super({ ...options, name: 'cookidoo' });
@@ -91,8 +91,8 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {string} id
-	 * @param {ioBroker.State | null | undefined} state
+	 * @param {string} id - State ID
+	 * @param {ioBroker.State | null | undefined} state - State value
 	 */
 	async onStateChange(id, state) {
 		if (!state || state.ack) {
@@ -103,8 +103,8 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {string} localId
-	 * @param {any} val
+	 * @param {string} localId - Local state ID
+	 * @param {any} val - State value
 	 */
 	async _handleAction(localId, val) {
 		const ack = async () => {
@@ -1027,7 +1027,7 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {string} itemName
+	 * @param {string} itemName - Item name
 	 */
 	async addAdditionalItem(itemName) {
 		const lang = this.loc.language;
@@ -1035,7 +1035,7 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {string[]} additionalItemIDs
+	 * @param {string[]} additionalItemIDs - List of item IDs
 	 */
 	async removeAdditionalItems(additionalItemIDs) {
 		const lang = this.loc.language;
@@ -1043,7 +1043,7 @@ class CookidooAdapter extends utils.Adapter {
 	}
 
 	/**
-	 * @param {boolean} owned
+	 * @param {boolean} owned - Owned status
 	 */
 	async markAllIngredientsOwned(owned) {
 		const lang = this.loc.language;
